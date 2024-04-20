@@ -1,12 +1,75 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { Text, View, FlatList, TouchableOpacity, Image } from 'react-native'
 import React from 'react'
+import { getUserPosts, signOut } from "../../lib/appwrite";
+import { useAppwrite } from "../../lib/useAppwrite";
+import { SafeAreaView } from 'react-native-safe-area-context'
+import EmptyState from '../../components/EmptyState'
+import VideoCard from '../../components/VideoCard'
+import { useGlobalContext } from '../../context/GlobalProvider';
+import { icons } from '../../constants';
+import InfoBox from '../../components/InfoBox';
+import { router } from 'expo-router';
 
-const profile = () => {
+
+const Profile = () => {
+  const { user, setUser, setIsLoggedIn } = useGlobalContext();
+  const { data: posts } = useAppwrite(() => getUserPosts(user.$id));
+  const logout = async () => {
+    await signOut();
+    setUser(null);
+    setIsLoggedIn(false);
+    router.replace('/sign-in')
+  }
+
   return (
-    <View>
-      <Text>profile</Text>
-    </View>
+    <SafeAreaView className="bg-primary h-full">
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => item.$id}
+        renderItem={({ item }) => (
+          <VideoCard video={item} />
+        )}
+        ListHeaderComponent={() => {
+          return (
+            <View className='w-full flex justify-center items-center mt-6 mb-12 px-4'>
+              <TouchableOpacity onPress={logout} className='w-full justify-center items-end mt-6 mb-12 px-4'>
+                <Image source={icons.logout} resizeMode='contain' className='w-6 h-6' />
+              </TouchableOpacity>
+              <View className='w-16 h-16 border border-secondary rounded-lg justify-center items-center'>
+                <Image source={{ uri: user?.avatar }} resizeMode='cover' className='w-12 h-12 rounded-lg' />
+              </View>
+              <InfoBox
+                title={user?.username}
+                containerStyles="mt-5"
+                titleStyles="text-lg"
+              />
+              <View className="mt-5 flex flex-row">
+                <InfoBox
+                  title={posts.length || 0}
+                  subtitle="Posts"
+                  titleStyles="text-xl"
+                  containerStyles="mr-10"
+                />
+                <InfoBox
+                  title="1.2k"
+                  subtitle="Followers"
+                  titleStyles="text-xl"
+                />
+              </View>
+            </View>
+          )
+        }
+        }
+        ListEmptyComponent={() => (
+          <EmptyState
+            title="No Videos Found"
+            subtitle="No Videos Found for the search query. "
+          />
+        )}
+
+      />
+    </SafeAreaView>
   )
 }
 
-export default profile
+export default Profile
